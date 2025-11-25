@@ -1,213 +1,293 @@
-# 🎵 JamShare – Cloud-Based Musical Equipment Rental & Collaboration Platform
+# 🌩️ Cloud Storage Network Simulation
+
+## Overview
+
+A **distributed cloud storage network** that simulates a virtual storage infrastructure where nodes can register, connect, and transfer files in a controlled network environment. This project demonstrates core distributed system principles including **node discovery, network addressing, file transfer protocols, and resource management**.
 
 ---
 
-## **Abstract**
+## 🏗️ Architecture
 
-Music thrives on connection, yet accessing quality musical equipment is often a challenge.  
-**JamShare** is a cloud-based platform that allows musicians, studios, and event organizers to **rent and share musical instruments online**.  
+The system consists of three main components:
 
-Built with **React**, **FastAPI**, **PostgreSQL**, and **Redis**, JamShare demonstrates key distributed system principles:
+### 1. **Cloud Server** (`cloud_server.py`)
+- Central coordination server
+- Manages node registration and network addressing
+- Assigns unique IP/MAC addresses to joining nodes
+- Handles file transfer coordination
+- Maintains network discovery tables
+- Manages IP address pool (192.168.1.100-254)
 
-- **Scalability** – handle growing user demands  
-- **Fault tolerance** – recover from component failures  
-- **Collaboration** – enable real-time interactions  
+### 2. **Virtual Network** (`storage_virtual_network.py`)
+- Manages node connections and topology
+- Coordinates file transfers between nodes
+- Tracks network statistics and utilization
+- Handles node discovery and network updates
+- Maintains bidirectional connections between nodes
 
-This README outlines the project’s **vision, architecture, technical choices, and future potential**, bridging the gap between theory and practice.
-
----
-
-## **1. Introduction**
-
-Independent musicians and studios often struggle to access instruments or studio gear. Meanwhile, expensive equipment sits unused.  
-
-**JamShare** solves this by providing a **digital platform for sharing and renting instruments**, inspired by the *sharing economy* (like Airbnb or Uber).  
-
-Key goals:
-
-- Reduce financial barriers for musicians  
-- Enable collaborative management for bands, studios, and events  
-- Demonstrate practical **distributed system design**
-
----
-
-## **2. Problem Statement**
-
-Musicians face challenges such as:
-
-1. Limited access to quality instruments  
-2. High rental costs due to lack of centralization  
-3. Inefficient manual bookings (phone/email)  
-4. Lack of trust or transparency  
-5. Existing systems not built for high traffic or concurrent bookings  
-
-**JamShare addresses these issues** through a scalable, fault-tolerant, and collaborative digital solution.
+### 3. **Virtual Nodes** (`storage_virtual_node.py`, `node_client.py`)
+- Individual storage nodes with configurable resources (CPU, memory, storage, bandwidth)
+- Handle file transfers in 1MB chunks
+- Maintain local storage and network connections
+- Provide performance metrics and health monitoring
+- Support interactive command-line interface
 
 ---
 
-## **3. Project Objectives**
+## 🚀 Quick Start
 
-### **General Objective**
-To design a **cloud-ready distributed platform** for renting and sharing musical equipment.
+### Prerequisites
+- Python 3.7+
+- No external dependencies required
 
-### **Specific Objectives**
+### Running the System
 
-- Responsive web interface for browsing and renting instruments  
-- Backend capable of handling multiple concurrent requests  
-- Caching and load management for high performance  
-- Fault-tolerance with replication, retries, and backup  
-- Real-time collaboration using WebSockets  
-- Secure and consistent data management  
-- Modular architecture for future cloud deployment
+1. **Start the Cloud Server:**
+```bash
+python cloud_server.py
+```
+```
+🌩️ Cloud Server started on localhost:8889
+📍 Server will automatically assign IP/MAC addresses to joining nodes
+```
 
----
+2. **Join Nodes to the Network:**
+```bash
+# In separate terminals
+python node_client.py node1
+python node_client.py node2
+python node_client.py node3
+```
 
-## **4. System Overview**
-
-JamShare is divided into layers:
-
-1. **Frontend (React.js)**  
-   - Browse, list, and manage instruments  
-   - Handles dynamic UI updates with Redux or Context API  
-
-2. **Backend (FastAPI)**  
-   - Asynchronous API endpoints for authentication, booking, and collaboration  
-   - Modular design supports future microservices  
-
-3. **Database (PostgreSQL)**  
-   - Stores structured data (users, bookings, instruments)  
-   - ACID compliant for reliability  
-
-4. **Cache & Messaging (Redis)**  
-   - In-memory caching for fast retrieval  
-   - Supports Pub/Sub for real-time updates  
-
-5. **Real-time Collaboration (WebSockets)**  
-   - Live chat and booking updates  
-   - Shared equipment lists for bands and studios  
-
-6. **Version Control (GitHub)**  
-   - Source code management and collaboration
+3. **Use Interactive Commands:**
+```
+node_node1> connect node2
+node_node1> transfer node2 large_file.zip 104857600  # 100MB file
+node_node1> stats
+node_node1> discovery
+node_node1> quit
+```
 
 ---
 
-## **5. Technology Stack**
+## 🔧 Core Features
 
-### **5.1 React.js**
-- Component-based, scalable UI  
-- Efficient state management  
-- Dynamic rendering for responsive web experience  
+### 🌐 Network Management
+- **Automatic IP/MAC Address Assignment**: Server dynamically assigns network addresses from managed pool
+- **Node Discovery**: Real-time discovery of network participants via central registry
+- **Connection Management**: Establish bandwidth-limited bidirectional connections between nodes
+- **Network Broadcasting**: Notifications when new nodes join the network
 
-### **5.2 FastAPI**
-- High-performance, asynchronous backend  
-- Automatic API documentation (Swagger/ReDoc)  
-- Strong data validation with Pydantic  
-- Modular, testable, and microservice-ready  
+### 📁 File Transfer System
+- **Chunk-based Transfers**: Files automatically split into 1MB chunks for efficient transfer
+- **Progress Tracking**: Real-time transfer status and progress monitoring with completion percentages
+- **Checksum Verification**: Data integrity validation through MD5 checksums for each chunk
+- **Bandwidth Management**: Transfer scheduling based on available connection bandwidth
+- **Transfer Resumption**: Support for partial transfers with chunk-level tracking
 
-### **5.3 PostgreSQL**
-- Reliable, transactional database  
-- ACID compliance ensures consistent data  
-- JSON support for flexibility  
+### 📊 Monitoring & Metrics
+- **Storage Utilization**: Track used/available storage per node with percentage utilization
+- **Network Statistics**: Bandwidth usage, active transfers, data volumes across entire network
+- **Performance Metrics**: Transfer success rates, processing statistics, failed transfer tracking
+- **Health Checks**: Comprehensive node status monitoring and availability tracking
+- **Real-time Metrics**: Live updates on storage, network, and transfer metrics
 
-### **5.4 Redis**
-- In-memory cache for high performance  
-- Real-time notifications via Pub/Sub  
-- Session and temporary data management  
-
-### **5.5 WebSockets**
-- Two-way communication for collaboration  
-- Live updates for bookings and messaging
-
----
-
-## **6. Distributed System Design**
-
-- **Horizontal Scaling:** Each service can run on separate servers or containers  
-- **Fault Isolation:** Failures in one service don’t crash the entire system  
-- **Data Replication & Backup:** PostgreSQL replicas and backups prevent data loss  
-- **Asynchronous Operations:** Efficient handling of multiple concurrent requests  
+### 💻 Interactive Interface
+- **Command-line Interface**: Easy-to-use interactive node management console
+- **Real-time Updates**: Live network discovery and status information
+- **Transfer Control**: Initiate and monitor file transfers between connected nodes
+- **Network Exploration**: Discover other nodes and view connection status
 
 ---
 
-## **7. Fault Tolerance**
+## 🎯 Use Cases
 
-- Database replication for high availability  
-- Graceful degradation of services  
-- Middleware error handling  
-- Retry mechanisms for failed API calls  
-- Stateless backend allows recovery via container restarts
+### 🔬 Distributed Systems Education
+- **Network Simulation**: Study node communication patterns and network topologies
+- **Resource Management**: Learn about storage and bandwidth allocation strategies
+- **Fault Tolerance**: Experiment with node failures and recovery mechanisms
+- **Protocol Design**: Understand chunk-based file transfer protocols
 
----
+### 💾 Storage Infrastructure Testing
+- **Protocol Development**: Test and develop file transfer algorithms
+- **Load Testing**: Simulate multiple concurrent transfers and measure performance
+- **Performance Analysis**: Measure network efficiency and identify bottlenecks
+- **Scalability Testing**: Evaluate system behavior with increasing node count
 
-## **8. Collaboration Features**
-
-- Live notifications for equipment updates  
-- Instant messaging between owners and renters  
-- Shared equipment lists for teams  
-- Multi-user dashboards for bands or studios  
-
----
-
-## **9. Security and Data Protection**
-
-- **JWT Authentication** for secure sessions  
-- **Password hashing** before storage  
-- **Role-based permissions** (admin, owner, renter)  
-- **Input validation** using Pydantic  
-- **Regular backups** for data protection  
+### 🌐 Cloud Infrastructure Simulation
+- **Network Addressing**: Study dynamic IP assignment and management
+- **Node Discovery**: Implement and test discovery protocols
+- **Resource Allocation**: Practice CPU, memory, and storage management
+- **Monitoring Systems**: Build comprehensive metrics collection and reporting
 
 ---
 
-## **10. Testing and Evaluation**
+## 📁 Project Structure
 
-- **Unit Tests:** Validate backend endpoints and data models  
-- **Integration Tests:** Ensure frontend-backend communication  
-- **Load Tests:** Simulate multiple concurrent users  
-- **User Testing:** Validate usability and interface design  
-
----
-
-## **11. Limitations**
-
-- Deployment phase deferred (cloud hosting pending)  
-- Payment gateway integration under development  
-- Mobile-first adaptation planned  
-- Advanced AI or blockchain features are future enhancements
+```
+cloud-storage-simulation/
+├── cloud_server.py          # Central cloud server (entry point)
+├── node_client.py           # Node client implementation
+├── storage_virtual_node.py  # Virtual node class definition
+├── storage_virtual_network.py # Network management system
+├── main.py                  # Example usage and demonstration
+└── README.md               # Documentation
+```
 
 ---
 
-## **12. Future Enhancements**
+## 🔄 Core Processes
 
-- Containerization with **Docker** and **Kubernetes**  
-- Load balancing with **Nginx or HAProxy**  
-- Personalized recommendations using **Machine Learning**  
-- Mobile application development  
-- Cloud-based CI/CD pipelines
+### Node Registration Process
+1. **Connection**: Node client connects to cloud server on port 8889
+2. **Registration**: Node sends registration request with capacity specifications
+3. **Address Assignment**: Server assigns unique IP and MAC addresses
+4. **Network Join**: Node added to network discovery table
+5. **Notification**: Existing nodes notified of new participant via broadcast
+
+### File Transfer Process
+1. **Initiation**: Source node requests transfer to target node with file details
+2. **Validation**: System checks connection status and target storage capacity
+3. **Chunking**: File split into 1MB chunks with individual MD5 checksums
+4. **Transfer**: Chunks transmitted sequentially with progress tracking
+5. **Verification**: Each chunk validated using checksum on receipt
+6. **Storage**: Chunks stored on target node with status tracking
+7. **Completion**: File marked complete when all chunks successfully transferred
+
+### Network Discovery Process
+- Centralized discovery table maintained by cloud server
+- Nodes receive automatic updates when new nodes join network
+- Connection information shared for peer-to-peer transfers
+- Health status tracking for all network participants
 
 ---
 
-## **13. Conclusion**
+## 📈 Performance Metrics Tracked
 
-JamShare is a **practical demonstration of distributed systems applied to a real-world problem**. It combines:
+### Node-level Metrics
+- **Storage Utilization**: Used/total storage with percentage
+- **Transfer Statistics**: Successful vs failed transfers count
+- **Data Volume**: Total bytes transferred
+- **Network Connections**: Active connection count and bandwidth
+- **Uptime**: Node availability and health status
 
-- Scalable architecture  
-- Fault tolerance  
-- Real-time collaboration  
-
-By making musical equipment more accessible, it empowers musicians, studios, and bands. JamShare shows how **technology can connect creative communities** while illustrating distributed system principles in action.
+### Network-level Metrics
+- **Total Nodes**: Number of active nodes in network
+- **Active Transfers**: Concurrent file transfers in progress
+- **Bandwidth Utilization**: Overall network capacity usage
+- **Storage Distribution**: Aggregate storage across all nodes
+- **Connection Topology**: Network connectivity graph
 
 ---
 
-## **References**
+## 🛠️ Technical Implementation
 
-- FastAPI Documentation – https://fastapi.tiangolo.com  
-- React Official Guide – https://react.dev  
-- PostgreSQL Docs – https://www.postgresql.org/docs  
-- Redis Docs – https://redis.io/docs  
-- Starlette Framework – https://www.starlette.io  
-- Pydantic Models – https://docs.pydantic.dev  
-- Docker Overview – https://docs.docker.com  
-- Microsoft Cloud Design Patterns – https://learn.microsoft.com/en-us/azure/architecture/patterns  
+### Key Classes
 
+**StorageVirtualNode**: Represents individual storage nodes
+- Manages local storage and transfers
+- Tracks performance metrics
+- Handles network connections
 
+**StorageVirtualNetwork**: Manages network topology
+- Coordinates inter-node communication
+- Tracks network-wide statistics
+- Manages node discovery
 
+**CloudServer**: Central coordination
+- Handles node registration
+- Manages IP address allocation
+- Coordinates network broadcasts
+
+### Data Structures
+- **FileChunk**: Individual file segments with checksums
+- **FileTransfer**: Complete transfer operations with status tracking
+- **NetworkInfo**: Node network identity and addressing
+- **TransferStatus**: Enumeration of transfer states
+
+---
+
+## 💡 Example Usage
+
+```python
+# Create network and nodes
+network = StorageVirtualNetwork()
+node1 = StorageVirtualNode("node1", storage_capacity=500, bandwidth=1000)
+node2 = StorageVirtualNode("node2", storage_capacity=1000, bandwidth=2000)
+
+# Add to network and connect
+network.add_node(node1)
+network.add_node(node2)
+network.connect_nodes("node1", "node2", bandwidth=1000)
+
+# Transfer file
+transfer = network.initiate_file_transfer(
+    source_node_id="node1",
+    target_node_id="node2", 
+    file_name="data.zip",
+    file_size=100 * 1024 * 1024  # 100MB
+)
+
+# Process transfer in chunks
+chunks_done, completed = network.process_file_transfer(
+    source_node_id="node1",
+    target_node_id="node2",
+    file_id=transfer.file_id,
+    chunks_per_step=3
+)
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Connection Refused:**
+- Ensure cloud server is running before starting nodes
+- Verify port 8889 is available and not blocked
+- Check firewall settings for local connections
+
+**Transfer Failures:**
+- Confirm nodes are connected before initiating transfers
+- Verify adequate storage capacity on target node
+- Monitor available bandwidth for large transfers
+- Check chunk checksum validation logs
+
+**Node Discovery Issues:**
+- Restart cloud server to refresh discovery table
+- Ensure unique node IDs across the network
+- Verify network broadcast functionality
+
+**Resource Exhaustion:**
+- Monitor IP address pool availability
+- Track individual node storage utilization
+- Manage concurrent transfer limits
+
+---
+
+## 🔮 Extension Possibilities
+
+### Potential Enhancements
+- **Multiple Transfer Protocols**: Add UDP, TCP variants
+- **Security Features**: Encryption, authentication
+- **Load Balancing**: Dynamic resource allocation
+- **Fault Tolerance**: Node failure recovery mechanisms
+- **Web Interface**: Graphical monitoring dashboard
+- **API Endpoints**: RESTful interface for automation
+- **Containerization**: Docker support for easy deployment
+
+---
+
+## 📚 Learning Outcomes
+
+This simulation demonstrates:
+
+- **Distributed System Design**: Centralized coordination with decentralized execution
+- **Network Protocols**: Custom implementation of node communication
+- **Resource Management**: Dynamic allocation of storage and bandwidth
+- **Fault Tolerance**: Handling node disconnections and transfer failures
+- **Monitoring Systems**: Real-time performance tracking and metrics collection
+- **Protocol Design**: Chunk-based file transfer with integrity verification
+
+This project provides practical experience in building and managing distributed storage systems, making it ideal for educational purposes and infrastructure prototyping.
