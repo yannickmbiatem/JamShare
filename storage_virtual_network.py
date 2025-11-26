@@ -4,6 +4,7 @@ import time
 import uuid
 from storage_virtual_node import StorageVirtualNode, FileTransfer, TransferStatus, FileChunk
 from collections import defaultdict
+import os
 
 class StorageVirtualNetwork:
     def __init__(self):
@@ -11,6 +12,7 @@ class StorageVirtualNetwork:
         self.transfer_operations: Dict[str, Dict[str, FileTransfer]] = defaultdict(dict)
         self.node_discovery_table: Dict[str, Dict] = {}  # Network-wide node registry
         self.connections: Dict[Tuple[str, str], int] = {}  # (node1, node2): bandwidth
+        self.file_content_storage: Dict[str, bytes] = {}  # Store file content for transfers
         
     def create_node(self, node_id: str, cpu_capacity=4, memory_capacity=16, 
                    storage_capacity=500, bandwidth=1000, ip_address=None, mac_address=None):
@@ -147,6 +149,58 @@ class StorageVirtualNetwork:
         print(f"   Chunks: {num_chunks}")
         
         return transfer
+
+    def initiate_file_transfer_with_content(self, source_node_id: str, target_node_id: str, 
+                                          file_name: str, file_size: int, file_content_hex: str) -> Optional[FileTransfer]:
+        """Initiate a file transfer with actual file content"""
+        if source_node_id not in self.nodes or target_node_id not in self.nodes:
+            print(f"❌ Transfer failed: Nodes not found")
+            return None
+            
+        if (source_node_id, target_node_id) not in self.connections:
+            print(f"❌ Transfer failed: Nodes not connected")
+            return None
+        
+        # Convert hex string back to bytes
+        try:
+            file_content = bytes.fromhex(file_content_hex)
+        except ValueError:
+            print(f"❌ Invalid file content format")
+            return None
+        
+        # Create file transfer object
+        file_id = str(uuid.uuid4())[:8]
+        chunk_size = 1024 * 1024  # 1MB chunks
+        num_chunks = (file_size + chunk_size - 1) // chunk_size
+        
+        chunks = []
+        for i in range(num_chunks):
+            chunk_size_actual = min(chunk_size, file_size - i * chunk_size)
+            chunk_checksum = hashlib.md5(f"{file_id}_{i}".encode()).hexdigest()
+            chunks.append(FileChunk(
+                chunk_id=i,
+                size=chunk_size_actual,
+                checksum=chunk_checksum,
+                status=TransferStatus.PENDING
+            ))
+        
+        transfer = FileTransfer(
+            file_id=file_id,
+            file_name=file_name,
+            total_size=file_size,
+            chunks=chunks,
+            status=TransferStatus.IN_PROGRESS
+        )
+        
+        # Store transfer operation and file content
+        self.transfer_operations[source_node_id][file_id] = transfer
+        self.file_content_storage[file_id] = file_content
+        
+        print(f"📤 Transfer initiated with content: {file_id} ({file_name}, {file_size} bytes)")
+        print(f"   From: {source_node_id} → To: {target_node_id}")
+        print(f"   Chunks: {num_chunks}")
+        
+        return transfer
     
     def process_file_transfer(self, source_node_id: str, target_node_id: str, 
                             file_id: str, chunks_per_step: int = 3) -> Tuple[int, bool]:
@@ -179,6 +233,13 @@ class StorageVirtualNetwork:
                 self.nodes[target_node_id].used_storage += transfer.total_size
                 self.nodes[target_node_id].stored_files[file_id] = transfer
                 self.nodes[target_node_id].total_data_transferred += transfer.total_size
+                
+                # Store actual file on target node if content is available
+                if file_id in self.file_content_storage:
+                    self._store_actual_file_on_node(target_node_id, transfer.file_name, 
+                                                  self.file_content_storage[file_id], transfer.total_size)
+                    # Clean up stored content
+                    del self.file_content_storage[file_id]
             
             # Update source node metrics
             if source_node_id in self.nodes:
@@ -187,6 +248,25 @@ class StorageVirtualNetwork:
             print(f"✅ Transfer {file_id} completed!")
         
         return chunks_processed, all_completed
+
+    def _store_actual_file_on_node(self, node_id: str, file_name: str, file_content: bytes, file_size: int):
+        """Store actual file content on node's local storage"""
+        try:
+            # Create node storage directory
+            storage_dir = f"node_storage/{node_id}"
+            os.makedirs(storage_dir, exist_ok=True)
+            
+            # Write file content
+            file_path = os.path.join(storage_dir, file_name)
+            with open(file_path, 'wb') as f:
+                f.write(file_content)
+            
+            file_size_mb = file_size / (1024 * 1024)
+            print(f"💾 Stored actual file on {node_id}: {file_path} ({file_size_mb:.2f} MB)")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to store file on {node_id}: {e}")
+            return False
     
     def get_network_stats(self) -> Dict:
         """Get network statistics"""

@@ -2,6 +2,7 @@ import socket
 import json
 import time
 import sys
+import os
 from storage_virtual_node import StorageVirtualNode
 
 class NodeClient:
@@ -12,7 +13,72 @@ class NodeClient:
         self.node = None
         self.connected = False
         self.socket = None
+        self.storage_directory = f"node_storage/{node_id}"
+        self.create_storage_directory()
         
+    def create_storage_directory(self):
+        """Create directory for storing actual files"""
+        os.makedirs(self.storage_directory, exist_ok=True)
+        print(f"📁 Storage directory created: {self.storage_directory}")
+    
+    def set_node_storage(self, storage_mb):
+        """Set node storage capacity in megabytes"""
+        storage_gb = storage_mb / 1024  # Convert MB to GB for the node class
+        return storage_gb
+    
+    def create_actual_file(self, file_name, file_size_mb, content_type="random"):
+        """Create an actual file on disk with the specified size"""
+        file_path = os.path.join(self.storage_directory, file_name)
+        file_size_bytes = file_size_mb * 1024 * 1024
+        
+        if content_type == "random":
+            # Create file with random data
+            with open(file_path, 'wb') as f:
+                f.write(os.urandom(file_size_bytes))
+        elif content_type == "text":
+            # Create file with text data
+            with open(file_path, 'w') as f:
+                # Generate repetitive text to fill the file size
+                chunk = "This is a sample file content for storage simulation. "
+                chunks_needed = file_size_bytes // len(chunk) + 1
+                content = (chunk * chunks_needed)[:file_size_bytes]
+                f.write(content)
+        
+        print(f"📄 Created actual file: {file_path} ({file_size_mb} MB)")
+        return file_path, file_size_bytes
+    
+    def transfer_actual_file(self, source_file_path, target_node_id, target_file_name):
+        """Transfer an actual file to another node"""
+        if not os.path.exists(source_file_path):
+            print(f"❌ Source file not found: {source_file_path}")
+            return None
+        
+        file_size = os.path.getsize(source_file_path)
+        file_size_mb = file_size / (1024 * 1024)
+        
+        print(f"📤 Transferring actual file: {os.path.basename(source_file_path)} ({file_size_mb:.2f} MB)")
+        
+        # Initiate transfer through the network
+        file_id = self.initiate_transfer(target_node_id, target_file_name, file_size)
+        if not file_id:
+            return None
+        
+        # Simulate transfer process
+        chunks_done = 0
+        while True:
+            chunks_done_step, completed = self.process_transfer(self.node_id, file_id)
+            chunks_done += chunks_done_step
+            
+            if completed:
+                # Copy file to target node's storage directory (simulated)
+                print(f"✅ File transfer completed! File stored in target node's storage")
+                return file_id
+            elif chunks_done_step == 0:
+                print("❌ Transfer failed")
+                return None
+            
+            time.sleep(0.5)  # Simulate transfer delay
+    
     def connect_to_server(self):
         """Connect this node to the cloud server and register"""
         try:
@@ -24,13 +90,17 @@ class NodeClient:
             print(f"🔌 Connecting to cloud server at {self.server_host}:{self.server_port}...")
             self.socket.connect((self.server_host, self.server_port))
             
+            # Get storage size from user
+            storage_mb = self.get_storage_size_from_user()
+            storage_gb = self.set_node_storage(storage_mb)
+            
             # Registration code
             registration_data = {
                 'type': 'register_node',
                 'node_id': self.node_id,
                 'cpu_capacity': 4,
                 'memory_capacity': 16,
-                'storage_capacity': 500,
+                'storage_capacity': storage_gb,
                 'bandwidth': 1000
             }
             
@@ -43,7 +113,7 @@ class NodeClient:
                     node_id=self.node_id,
                     cpu_capacity=4,
                     memory_capacity=16,
-                    storage_capacity=500,
+                    storage_capacity=storage_gb,
                     bandwidth=1000,
                     ip_address=network_info['ip_address'],
                     mac_address=network_info['mac_address']
@@ -59,7 +129,7 @@ class NodeClient:
                 print(f"🌐 Network has {len(existing_nodes)} existing nodes: {existing_nodes}")
                 
                 self.connected = True
-                print("✅ Node successfully joined the cloud network!")
+                print(f"✅ Node successfully joined the cloud network with {storage_mb} MB storage!")
                 return True
             else:
                 print(f"❌ Registration failed: {response.get('message', 'Unknown error')}")
@@ -74,6 +144,22 @@ class NodeClient:
         except Exception as e:
             print(f"❌ Connection failed: {e}")
             return False
+    
+    def get_storage_size_from_user(self):
+        """Get storage size from user input"""
+        while True:
+            try:
+                size_input = input("💾 Enter storage capacity for this node (in MB, default 500MB): ").strip()
+                if not size_input:
+                    return 500
+                
+                size_mb = int(size_input)
+                if size_mb > 0:
+                    return size_mb
+                else:
+                    print("❌ Please enter a positive number")
+            except ValueError:
+                print("❌ Please enter a valid number")
     
     def send_command(self, command):
         """Send command to server and get response"""
@@ -168,10 +254,66 @@ class NodeClient:
             return response['network_info']
         return None
     
+    def list_local_files(self):
+        """List all files in the node's local storage directory"""
+        files = []
+        if os.path.exists(self.storage_directory):
+            for file_name in os.listdir(self.storage_directory):
+                file_path = os.path.join(self.storage_directory, file_name)
+                if os.path.isfile(file_path):
+                    file_size = os.path.getsize(file_path)
+                    file_size_mb = file_size / (1024 * 1024)
+                    files.append({
+                        'name': file_name,
+                        'size_bytes': file_size,
+                        'size_mb': file_size_mb,
+                        'path': file_path
+                    })
+        return files
+    
+    def get_node_storage_info(self):
+        """Get node storage information"""
+        if self.node:
+            storage_info = self.node.get_storage_utilization()
+            used_mb = storage_info['used_bytes'] / (1024 * 1024)
+            total_mb = storage_info['total_bytes'] / (1024 * 1024)
+            available_mb = storage_info['available_bytes'] / (1024 * 1024)
+            
+            return {
+                'used_mb': used_mb,
+                'total_mb': total_mb,
+                'available_mb': available_mb,
+                'utilization_percent': storage_info['utilization_percent']
+            }
+        return None
+    
+    def delete_local_file(self, file_name):
+        """Delete a file from local storage"""
+        file_path = os.path.join(self.storage_directory, file_name)
+        if os.path.exists(file_path):
+            file_size = os.path.getsize(file_path)
+            os.remove(file_path)
+            file_size_mb = file_size / (1024 * 1024)
+            print(f"🗑️  Deleted file: {file_name} ({file_size_mb:.2f} MB)")
+            return True
+        else:
+            print(f"❌ File not found: {file_name}")
+            return False
+    
     def interactive_mode(self):
         """Interactive terminal interface for this node"""
         print(f"\n🎮 Node {self.node_id} Interactive Mode")
-        print("Commands: connect <node_id>, transfer <node_id> <file> [size], stats, discovery, quit")
+        print("Commands:")
+        print("  connect <node_id>                    - Connect to another node")
+        print("  transfer <node_id> <file> [size]     - Transfer virtual file")
+        print("  transfer_actual <node_id> <file>     - Transfer actual file from storage")
+        print("  create_file <name> <size_mb> [type]  - Create actual file (types: random, text)")
+        print("  list_files                           - List files in local storage")
+        print("  delete_file <name>                   - Delete file from local storage")
+        print("  stats                                - Show network statistics")
+        print("  discovery                            - Show network discovery")
+        print("  storage_info                         - Show node storage utilization")
+        print("  quit                                 - Exit")
         
         while True:
             try:
@@ -189,7 +331,7 @@ class NodeClient:
                 elif cmd[0] == 'transfer' and len(cmd) >= 3:
                     target_node = cmd[1]
                     file_name = cmd[2]
-                    file_size = int(cmd[3]) if len(cmd) > 3 else 100 * 1024 * 1024  # Default 100MB
+                    file_size = int(cmd[3]) if len(cmd) > 3 else 10 * 1024 * 1024  # Default 10MB
                     
                     file_id = self.initiate_transfer(target_node, file_name, file_size)
                     if file_id:
@@ -200,6 +342,46 @@ class NodeClient:
                                 break
                             time.sleep(1)  # Simulate processing delay
                             
+                elif cmd[0] == 'transfer_actual' and len(cmd) >= 3:
+                    target_node = cmd[1]
+                    file_name = cmd[2]
+                    
+                    # Check if file exists locally
+                    file_path = os.path.join(self.storage_directory, file_name)
+                    if not os.path.exists(file_path):
+                        print(f"❌ File not found in local storage: {file_name}")
+                        print(f"💡 Use 'create_file' command to create a file first")
+                        continue
+                    
+                    self.transfer_actual_file(file_path, target_node, file_name)
+                    
+                elif cmd[0] == 'create_file' and len(cmd) >= 3:
+                    file_name = cmd[1]
+                    try:
+                        file_size_mb = int(cmd[2])
+                        content_type = cmd[3] if len(cmd) > 3 else "random"
+                        
+                        if content_type not in ["random", "text"]:
+                            print("❌ Content type must be 'random' or 'text'")
+                            continue
+                            
+                        self.create_actual_file(file_name, file_size_mb, content_type)
+                    except ValueError:
+                        print("❌ Invalid file size. Please enter a number.")
+                        
+                elif cmd[0] == 'list_files':
+                    files = self.list_local_files()
+                    if files:
+                        print(f"📁 Files in {self.storage_directory}:")
+                        for file_info in files:
+                            print(f"   📄 {file_info['name']} - {file_info['size_mb']:.2f} MB")
+                    else:
+                        print("📁 No files in local storage")
+                        
+                elif cmd[0] == 'delete_file' and len(cmd) == 2:
+                    file_name = cmd[1]
+                    self.delete_local_file(file_name)
+                        
                 elif cmd[0] == 'stats':
                     stats = self.get_network_stats()
                     if stats:
@@ -218,6 +400,15 @@ class NodeClient:
                             status = info.get('status', 'unknown')
                             ip = info.get('ip_address', 'unknown')
                             print(f"   - {node_id}: {ip} ({status})")
+                
+                elif cmd[0] == 'storage_info':
+                    storage_info = self.get_node_storage_info()
+                    if storage_info:
+                        print(f"💾 Node Storage Information:")
+                        print(f"   Used: {storage_info['used_mb']:.2f} MB")
+                        print(f"   Total: {storage_info['total_mb']:.2f} MB")
+                        print(f"   Available: {storage_info['available_mb']:.2f} MB")
+                        print(f"   Utilization: {storage_info['utilization_percent']:.2f}%")
                         
                 elif cmd[0] == 'quit':
                     print("👋 Goodbye!")
@@ -226,7 +417,8 @@ class NodeClient:
                     break
                     
                 else:
-                    print("❓ Unknown command. Use: connect <node>, transfer <node> <file> [size], stats, discovery, quit")
+                    print("❓ Unknown command. Available commands:")
+                    print("   connect, transfer, transfer_actual, create_file, list_files, delete_file, stats, discovery, storage_info, quit")
                     
             except KeyboardInterrupt:
                 print("\n👋 Goodbye!")
