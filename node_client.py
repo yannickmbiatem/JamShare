@@ -300,6 +300,97 @@ class NodeClient:
             print(f"❌ File not found: {file_name}")
             return False
     
+    def interactive_mode_command(self, cmd):
+        """Extract the command handling logic for reuse"""
+        if cmd[0] == 'connect' and len(cmd) == 2:
+            other_node = cmd[1]
+            if self.connect_to_node(other_node):
+                print(f"🔗 Connected to {other_node}")
+            else:
+                print(f"❌ Failed to connect to {other_node}")
+                
+        elif cmd[0] == 'transfer' and len(cmd) >= 3:
+            target_node = cmd[1]
+            file_name = cmd[2]
+            file_size = int(cmd[3]) if len(cmd) > 3 else 10 * 1024 * 1024  # Default 10MB
+            
+            file_id = self.initiate_transfer(target_node, file_name, file_size)
+            if file_id:
+                # Process the transfer
+                while True:
+                    chunks_done, completed = self.process_transfer(self.node_id, file_id)
+                    if completed:
+                        break
+                    time.sleep(1)  # Simulate processing delay
+                    
+        elif cmd[0] == 'transfer_actual' and len(cmd) >= 3:
+            target_node = cmd[1]
+            file_name = cmd[2]
+            
+            # Check if file exists locally
+            file_path = os.path.join(self.storage_directory, file_name)
+            if not os.path.exists(file_path):
+                print(f"❌ File not found in local storage: {file_name}")
+                print(f"💡 Use 'create_file' command to create a file first")
+                return
+            
+            self.transfer_actual_file(file_path, target_node, file_name)
+            
+        elif cmd[0] == 'create_file' and len(cmd) >= 3:
+            file_name = cmd[1]
+            try:
+                file_size_mb = int(cmd[2])
+                content_type = cmd[3] if len(cmd) > 3 else "random"
+                
+                if content_type not in ["random", "text"]:
+                    print("❌ Content type must be 'random' or 'text'")
+                    return
+                    
+                self.create_actual_file(file_name, file_size_mb, content_type)
+            except ValueError:
+                print("❌ Invalid file size. Please enter a number.")
+                
+        elif cmd[0] == 'list_files':
+            files = self.list_local_files()
+            if files:
+                print(f"📁 Files in {self.storage_directory}:")
+                for file_info in files:
+                    print(f"   📄 {file_info['name']} - {file_info['size_mb']:.2f} MB")
+            else:
+                print("📁 No files in local storage")
+                
+        elif cmd[0] == 'delete_file' and len(cmd) == 2:
+            file_name = cmd[1]
+            self.delete_local_file(file_name)
+                
+        elif cmd[0] == 'stats':
+            stats = self.get_network_stats()
+            if stats:
+                print(f"🌐 Network Stats:")
+                print(f"   Nodes: {stats['total_nodes']}")
+                print(f"   Bandwidth Usage: {stats['bandwidth_utilization']:.2f}%")
+                print(f"   Storage Usage: {stats['storage_utilization']:.2f}%")
+                print(f"   Active Transfers: {stats['active_transfers']}")
+                
+        elif cmd[0] == 'discovery':
+            discovery_info = self.get_network_discovery()
+            if discovery_info:
+                print(f"🔍 Network Discovery:")
+                print(f"   Total Nodes: {discovery_info['total_nodes']}")
+                for node_id, info in discovery_info.get('node_discovery_table', {}).items():
+                    status = info.get('status', 'unknown')
+                    ip = info.get('ip_address', 'unknown')
+                    print(f"   - {node_id}: {ip} ({status})")
+        
+        elif cmd[0] == 'storage_info':
+            storage_info = self.get_node_storage_info()
+            if storage_info:
+                print(f"💾 Node Storage Information:")
+                print(f"   Used: {storage_info['used_mb']:.2f} MB")
+                print(f"   Total: {storage_info['total_mb']:.2f} MB")
+                print(f"   Available: {storage_info['available_mb']:.2f} MB")
+                print(f"   Utilization: {storage_info['utilization_percent']:.2f}%")
+    
     def interactive_mode(self):
         """Interactive terminal interface for this node"""
         print(f"\n🎮 Node {self.node_id} Interactive Mode")

@@ -2,7 +2,7 @@ import socket
 import threading
 import random
 import uuid
-import time  # ← THIS FIXES THE ERROR
+import time
 from storage_virtual_network import StorageVirtualNetwork
 import json
 
@@ -216,6 +216,47 @@ class CloudServer:
     def get_network_stats(self, command):
         stats = self.network.get_network_stats()
         return {'status': 'success', 'stats': stats}
+
+    def terminate_cloud_service(self, node_id=None):
+        """Terminate cloud services for specific node or all nodes"""
+        if node_id:
+            # Terminate service for specific node
+            if hasattr(self, 'node_registry') and node_id in self.node_registry:
+                # Release IP address
+                ip_address = self.node_registry[node_id]['ip_address']
+                self.release_ip_address(ip_address)
+                del self.node_registry[node_id]
+            
+            # Remove from network
+            self.network.remove_node(node_id)
+            print(f"🔴 Terminated cloud service for node {node_id}")
+            
+        else:
+            # Terminate all services
+            print("🔴 Terminating all cloud services...")
+            if hasattr(self, 'node_registry'):
+                for node_id in list(self.node_registry.keys()):
+                    self.terminate_cloud_service(node_id)
+            
+            self.running = False
+            if hasattr(self, 'server_socket'):
+                self.server_socket.close()
+            print("🛑 Cloud service terminated")
+
+    def handle_client_disconnect(self, client_socket):
+        """Handle client disconnection with cleanup"""
+        if hasattr(client_socket, 'node_id') and client_socket.node_id:
+            node_id = client_socket.node_id
+            if node_id in self.node_registry:
+                node_info = self.node_registry[node_id]
+                self.release_ip_address(node_info['ip_address'])
+                del self.node_registry[node_id]
+                print(f"📢 Node {node_id} disconnected from network")
+        
+        try:
+            client_socket.close()
+        except:
+            pass
 
 if __name__ == "__main__":
     server = CloudServer()
