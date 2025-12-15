@@ -1,0 +1,20 @@
+{
+    "yannick": {
+        "username": "yannick",
+        "email": "yannickmbiatem@gmail.com",
+        "password_hash": "b180d8014077227e8dd591640d0e72e813a66b0e09cb78cf67e05ef055330ee4",
+        "storage_quota_mb": 1024,
+        "used_storage_mb": 0,
+        "nodes": [],
+        "created_at": 1765546056.1489503
+    },
+    "randy": {
+        "username": "randy",
+        "email": "yannickmbiatem@gmail.com",
+        "password_hash": "b180d8014077227e8dd591640d0e72e813a66b0e09cb78cf67e05ef055330ee4",
+        "storage_quota_mb": 1024,
+        "used_storage_mb": 0,
+        "nodes": [],
+        "created_at": 1765548404.0870388
+    }
+}

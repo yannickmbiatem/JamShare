@@ -4,7 +4,7 @@
 
 A **distributed cloud storage network** that simulates a virtual storage infrastructure where nodes can register, connect, and transfer files in a controlled network environment. This project demonstrates core distributed system principles including **node discovery, network addressing, file transfer protocols, and resource management**.
 
----
+---  
 
 ## 🏗️ Architecture
 

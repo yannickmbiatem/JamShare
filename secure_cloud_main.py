@@ -71,7 +71,7 @@ def main():
     # Configure these values for your email service
     EMAIL_SENDER = None      # Set to your email, e.g., "your_email@gmail.com"
     EMAIL_PASSWORD = None    # Set to your app password
-    ENABLE_EMAIL = False     # Set to True if you configured email
+    ENABLE_EMAIL = True     # Set to True if you configured email
     
     secure_network = SecureCloudStorageNetwork(
         email_sender=EMAIL_SENDER,
