@@ -1,30 +1,156 @@
 <!DOCTYPE html>
-<html>
-<head><title>Distributed Cloud Storage</title></head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JamShare - Your Cloud</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e); color: #eee; min-height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; }
+        .sound-wave { position: absolute; bottom: 0; left: 0; width: 100%; height: 150px; background: linear-gradient(to top, rgba(106, 13, 173, 0.3), transparent); opacity: 0.4; animation: wave 10s infinite linear; }
+        @keyframes wave { 0% { background-position: 0% 0; } 100% { background-position: 100% 0; } }
+        .container { background: rgba(30, 30, 50, 0.95); padding: 40px 30px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6); width: 90%; max-width: 600px; text-align: center; position: relative; z-index: 1; border: 1px solid #6a0dad; }
+        h1 { font-size: 2.8em; margin-bottom: 8px; background: linear-gradient(90deg, #c77dff, #e0aaff); background-clip:text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .tagline { color: #bbb; margin-bottom: 30px; font-size: 1.1em; }
+        .storage-info { background: #2a2a40; padding: 20px; border-radius: 12px; margin: 20px 0; font-size: 1.3em; color: #c77dff; font-weight: 600; }
+        .upload-section { margin: 30px 0; }
+        .file-input-wrapper input[type="file"] { width: 100%; padding: 14px; background: #2a2a40; border: none; border-radius: 12px; color: white; margin-bottom: 15px; }
+        .upload-btn { padding: 16px 30px; background: linear-gradient(90deg, #9d4edd, #6a0dad); color: white; border: none; border-radius: 12px; font-size: 1.2em; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .upload-btn:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(157, 78, 221, 0.5); }
+        .upload-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .progress-container { margin-top: 20px; display: none; }
+        .progress-bar-bg { background: #2a2a40; border-radius: 12px; overflow: hidden; height: 24px; }
+        .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #9d4edd, #c77dff); text-align: center; color: white; font-weight: bold; line-height: 24px; transition: width 0.3s; }
+        .message { margin: 15px 0; padding: 12px; border-radius: 8px; font-weight: 500; }
+        .success { background: rgba(0, 200, 0, 0.2); color: #0f0; }
+        .error { background: rgba(200, 0, 0, 0.2); color: #ff6b6b; }
+        .files-list h2 { text-align: center; color: #c77dff; }
+        .file-item { background: #2a2a40; padding: 15px; margin: 10px 0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .file-name { font-weight: 500; }
+        .file-actions a { color: #c77dff; text-decoration: none; margin: 0 10px; font-weight: 500; }
+        .file-actions a:hover { text-decoration: underline; }
+        .logout { position: absolute; top: 20px; right: 20px; color: #bbb; text-decoration: none; font-size: 0.9em; }
+        .logout:hover { color: #c77dff; }
+        @media (max-width: 480px) { .container { padding: 30px 20px; } h1 { font-size: 2.4em; } .file-item { flex-direction: column; align-items: flex-start; } .file-actions { margin-top: 10px; } }
+    </style>
+</head>
 <body>
-    <h1>Welcome to Your Cloud Storage</h1>
-    <p><strong>{{ space }}</strong></p>
-    <a href="/logout">Logout</a>
-    <hr>
-    <h2>Upload File</h2>
-    <form method="POST" action="/upload" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <input type="submit" value="Upload">
-    </form>
-    <hr>
-    <h2>Your Files</h2>
-    {% if files %}
-    <ul>
-        {% for file in files %}
-        <li>
-            <strong>{{ file }}</strong>
-            — <a href="/download/{{ file }}">Download</a>
-            — <a href="/delete/{{ file }}" onclick="return confirm('Delete {{ file }}?')">Delete</a>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p>No files uploaded yet.</p>
-    {% endif %}
+    <div class="sound-wave"></div>
+    <div class="container">
+        <a href="/logout" class="logout">Logout</a>
+        <h1>JamShare</h1>
+        <p class="tagline">Your private cloud. Drop your beats here. 🎧</p>
+
+        <div class="storage-info">
+            {{ space }}
+        </div>
+
+        <div class="upload-section">
+            <div class="file-input-wrapper">
+                <input type="file" id="file-input" required>
+            </div>
+            <button id="upload-btn" class="upload-btn">Upload Selected File</button>
+
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-fill">0%</div>
+                </div>
+            </div>
+
+            <div id="message"></div>
+        </div>
+
+        <div class="files-list" id="files-list">
+            <h2>Your Files</h2>
+            {% if files %}
+                {% for file in files %}
+                <div class="file-item">
+                    <span class="file-name">{{ file }}</span>
+                    <div class="file-actions">
+                        <a href="/download/{{ file }}">Download</a>
+                        <a href="/delete/{{ file }}" onclick="return confirm('Delete {{ file }} forever?')">Delete</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align:center; color:#888;">No files yet. Start uploading!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const progressContainer = document.getElementById('progress-container');
+        const progressFill = document.getElementById('progress-fill');
+        const messageDiv = document.getElementById('message');
+        const filesList = document.getElementById('files-list');
+
+        uploadBtn.addEventListener('click', () => {
+            if (!fileInput.files.length) {
+                messageDiv.innerHTML = '<div class="message error">Please select a file!</div>';
+                setTimeout(() => messageDiv.innerHTML = '', 4000);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const xhr = new XMLHttpRequest();
+
+            progressContainer.style.display = 'block';
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressFill.style.width = percent + '%';
+                    progressFill.textContent = percent + '%';
+                }
+            };
+
+            xhr.onload = () => {
+                progressContainer.style.display = 'none';
+                progressFill.style.width = '0%';
+                progressFill.textContent = '0%';
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Selected File';
+
+                if (xhr.status === 200) {
+                    messageDiv.innerHTML = '<div class="message success">Uploaded successfully!</div>';
+                    fileInput.value = '';
+                    refreshFilesAndSpace();
+                } else {
+                    messageDiv.innerHTML = `<div class="message error">${xhr.responseText || 'Upload failed'}</div>`;
+                }
+                setTimeout(() => messageDiv.innerHTML = '', 5000);
+            };
+
+            xhr.onerror = () => {
+                progressContainer.style.display = 'none';
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Selected File';
+                messageDiv.innerHTML = '<div class="message error">Network error</div>';
+                setTimeout(() => messageDiv.innerHTML = '', 5000);
+            };
+
+            xhr.open('POST', '/upload');
+            xhr.send(formData);
+        });
+
+        function refreshFilesAndSpace() {
+            fetch(window.location.href)
+                .then(r => r.text())
+                .then(html => {
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const newList = doc.getElementById('files-list');
+                    const newSpace = doc.querySelector('.storage-info');
+                    if (newList) filesList.innerHTML = newList.innerHTML;
+                    if (newSpace) document.querySelector('.storage-info').innerHTML = newSpace.innerHTML;
+                });
+        }
+    </script>
 </body>
 </html>
