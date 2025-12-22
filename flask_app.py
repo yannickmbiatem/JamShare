@@ -7,16 +7,22 @@ import storage_pb2
 import storage_pb2_grpc
 
 app = Flask(__name__)
-app.secret_key = 'change_this_in_production'
+app.secret_key = 'change_this_to_a_strong_secret_key_in_production'
 
 AUTH_ADDR = 'localhost:50051'
 STORAGE_ADDR = 'localhost:50057'
+
+# gRPC options for large files (200MB limit)
+GRPC_OPTIONS = [
+    ('grpc.max_send_message_length', 200 * 1024 * 1024),
+    ('grpc.max_receive_message_length', 200 * 1024 * 1024)
+]
 
 @app.route('/', methods=['GET'])
 def home():
     if 'token' not in session:
         return redirect('/login')
-    with grpc.insecure_channel(STORAGE_ADDR) as channel:
+    with grpc.insecure_channel(STORAGE_ADDR, options=GRPC_OPTIONS) as channel:
         stub = storage_pb2_grpc.StorageServiceStub(channel)
         space_resp = stub.GetSpace(storage_pb2.SpaceRequest(token=session['token']))
         total_mb = space_resp.total / (1024 * 1024)
@@ -72,20 +78,39 @@ def verify_otp():
 def upload():
     if 'token' not in session:
         return "Login required", 401
-    file = request.files['file']
-    if not file.filename:
+
+    if 'file' not in request.files:
         return "No file selected", 400
+    file = request.files['file']
+    if file.filename == '':
+        return "No file selected", 400
+
     content = file.read()
-    with grpc.insecure_channel(STORAGE_ADDR) as channel:
-        stub = storage_pb2_grpc.StorageServiceStub(channel)
-        resp = stub.UploadFile(storage_pb2.UploadRequest(filename=file.filename, content=content, token=session['token']))
-    return redirect('/') if resp.success else (resp.message, 400)
+    if len(content) == 0:
+        return "Empty file", 400
+
+    try:
+        with grpc.insecure_channel(STORAGE_ADDR, options=GRPC_OPTIONS) as channel:
+            stub = storage_pb2_grpc.StorageServiceStub(channel)
+            resp = stub.UploadFile(storage_pb2.UploadRequest(
+                filename=file.filename,
+                content=content,
+                token=session['token']
+            ), timeout=60)
+            if resp.success:
+                return '', 200
+            else:
+                return resp.message, 400
+    except grpc.RpcError as e:
+        return f"Storage error: {e.details()}", 500
+    except Exception as e:
+        return f"Server error: {str(e)}", 500
 
 @app.route('/download/<filename>')
 def download(filename):
     if 'token' not in session:
         return "Login required", 401
-    with grpc.insecure_channel(STORAGE_ADDR) as channel:
+    with grpc.insecure_channel(STORAGE_ADDR, options=GRPC_OPTIONS) as channel:
         stub = storage_pb2_grpc.StorageServiceStub(channel)
         resp = stub.DownloadFile(storage_pb2.DownloadRequest(filename=filename, token=session['token']))
     if resp.success:
@@ -96,7 +121,7 @@ def download(filename):
 def delete(filename):
     if 'token' not in session:
         return "Login required", 401
-    with grpc.insecure_channel(STORAGE_ADDR) as channel:
+    with grpc.insecure_channel(STORAGE_ADDR, options=GRPC_OPTIONS) as channel:
         stub = storage_pb2_grpc.StorageServiceStub(channel)
         resp = stub.DeleteFile(storage_pb2.DeleteRequest(filename=filename, token=session['token']))
     return redirect('/') if resp.success else (resp.message, 400)
