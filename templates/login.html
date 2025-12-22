@@ -6,26 +6,32 @@
     <title>JamShare - Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Same base styles as register.html */
-        body { margin: 0; padding: 0; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e); color: #eee; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        .container { background: rgba(30, 30, 50, 0.9); padding: 40px 50px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); width: 400px; text-align: center; position: relative; border: 1px solid #6a0dad; }
-        h1 { font-size: 2.5em; margin-bottom: 10px; background: linear-gradient(90deg, #9d4edd, #e0aaff);background-clip:text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        p { color: #aaa; margin-bottom: 30px; }
-        input { width: 100%; padding: 14px; margin: 12px 0; border: none; border-radius: 10px; background: #2a2a40; color: white; font-size: 1em; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e); color: #eee; min-height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; }
+        .sound-wave { position: absolute; bottom: 0; left: 0; width: 100%; height: 150px; background: linear-gradient(to top, rgba(106, 13, 173, 0.3), transparent); opacity: 0.4; animation: wave 10s infinite linear; }
+        @keyframes wave { 0% { background-position: 0% 0; } 100% { background-position: 100% 0; } }
+        .container { background: rgba(30, 30, 50, 0.95); padding: 40px 30px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6); width: 90%; max-width: 420px; text-align: center; position: relative; z-index: 1; border: 1px solid #6a0dad; }
+        h1 { font-size: 2.8em; margin-bottom: 8px; background: linear-gradient(90deg, #c77dff, #e0aaff); background-clip:text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p.tagline { color: #bbb; margin-bottom: 30px; font-size: 1.1em; }
+        .error { color: #ff6b6b; margin-bottom: 15px; }
+        input { width: 100%; padding: 16px 20px; margin: 12px 0; border: none; border-radius: 12px; background: #2a2a40; color: white; font-size: 1.1em; }
         input::placeholder { color: #888; }
-        button { width: 100%; padding: 14px; background: linear-gradient(90deg, #9d4edd, #6a0dad); color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: 600; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        button:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(157, 78, 221, 0.4); }
-        .link { margin-top: 20px; color: #bbb; }
-        .link a { color: #c77dff; text-decoration: none; font-weight: 500; }
+        input:focus { outline: none; box-shadow: 0 0 0 3px rgba(157, 78, 221, 0.4); }
+        button { width: 100%; padding: 16px; background: linear-gradient(90deg, #9d4edd, #6a0dad); color: white; border: none; border-radius: 12px; font-size: 1.2em; font-weight: 600; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        button:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(157, 78, 221, 0.5); }
+        .link { margin-top: 25px; color: #ccc; font-size: 1em; }
+        .link a { color: #c77dff; text-decoration: none; font-weight: 600; }
         .link a:hover { text-decoration: underline; }
+        @media (max-width: 480px) { .container { padding: 30px 20px; } h1 { font-size: 2.4em; } }
     </style>
 </head>
 <body>
+    <div class="sound-wave"></div>
     <div class="container">
         <h1>JamShare</h1>
-        <p>Welcome back! Log in to your beats.</p>
+        <p class="tagline">Welcome back. Let's make some noise.</p>
         {% if message %}
-            <p style="color: #ff6b6b;">{{ message }}</p>
+            <p class="error">{{ message }}</p>
         {% endif %}
         <form method="POST">
             <input type="text" name="name" placeholder="Username" required>
@@ -33,7 +39,7 @@
             <button type="submit">Login</button>
         </form>
         <div class="link">
-            Don't have an account? <a href="/register">Register</a>
+            New here? <a href="/register">Register</a>
         </div>
     </div>
 </body>
