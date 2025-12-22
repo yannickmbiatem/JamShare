@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JamShare - Verify OTP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e); color: #eee; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .container { background: rgba(30, 30, 50, 0.9); padding: 40px 50px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); width: 400px; text-align: center; position: relative; border: 1px solid #6a0dad; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; background: linear-gradient(90deg, #9d4edd, #e0aaff);background-clip:text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p { color: #aaa; margin-bottom: 30px; }
+        input { width: 100%; padding: 14px; margin: 12px 0; border: none; border-radius: 10px; background: #2a2a40; color: white; font-size: 1em; text-align: center; letter-spacing: 8px; font-size: 1.5em; }
+        input::placeholder { color: #888; letter-spacing: normal; }
+        button { width: 100%; padding: 14px; background: linear-gradient(90deg, #9d4edd, #6a0dad); color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: 600; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        button:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(157, 78, 221, 0.4); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JamShare</h1>
+        <p>Enter the OTP sent to your email</p>
+        {% if message %}
+            <p style="color: #ff6b6b;">{{ message }}</p>
+        {% endif %}
+        <form method="POST" action="/verify_otp">
+            <input type="text" name="otp" placeholder="••••••" maxlength="6" required>
+            <button type="submit">Verify & Join the Jam</button>
+        </form>
+    </div>
+</body>
+</html>
