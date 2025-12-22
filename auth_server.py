@@ -10,12 +10,13 @@ import os
 
 class AuthServicer(auth_pb2_grpc.AuthServiceServicer):
     def __init__(self):
+        # Fixed: Allow SQLite connection across threads
         if not os.path.exists('users.db'):
-            self.db = sqlite3.connect('users.db')
+            self.db = sqlite3.connect('users.db', check_same_thread=False)
             self.db.execute('CREATE TABLE users (name TEXT PRIMARY KEY, password TEXT, email TEXT)')
             self.db.commit()
         else:
-            self.db = sqlite3.connect('users.db')
+            self.db = sqlite3.connect('users.db', check_same_thread=False)
         self.otps = {}
 
     def Register(self, request, context):
