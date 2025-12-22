@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package storage;
+
+service StorageService {
+  rpc UploadFile (UploadRequest) returns (UploadResponse);
+  rpc DownloadFile (DownloadRequest) returns (DownloadResponse);
+  rpc DeleteFile (DeleteRequest) returns (DeleteResponse);
+  rpc ListFiles (ListRequest) returns (ListResponse);
+  rpc GetSpace (SpaceRequest) returns (SpaceResponse);
+}
+
+message UploadRequest {
+  string filename = 1;
+  bytes content = 2;
+  string token = 3;
+}
+
+message UploadResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DownloadRequest {
+  string filename = 1;
+  string token = 2;
+}
+
+message DownloadResponse {
+  bool success = 1;
+  bytes content = 2;
+  string message = 3;
+}
+
+message DeleteRequest {
+  string filename = 1;
+  string token = 2;
+}
+
+message DeleteResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ListRequest {
+  string token = 1;
+}
+
+message ListResponse {
+  repeated string filenames = 1;
+}
+
+message SpaceRequest {
+  string token = 1;
+}
+
+message SpaceResponse {
+  int64 total = 1;
+  int64 used = 2;
+}
