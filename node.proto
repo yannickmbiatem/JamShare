@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package node;
+
+service NodeService {
+  rpc StoreFile (StoreRequest) returns (StoreResponse);
+  rpc RetrieveFile (RetrieveRequest) returns (RetrieveResponse);
+  rpc RemoveFile (RemoveRequest) returns (RemoveResponse);
+  rpc GetNodeSpace (NodeSpaceRequest) returns (NodeSpaceResponse);
+}
+
+message StoreRequest {
+  string filename = 1;
+  bytes content = 2;
+}
+
+message StoreResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message RetrieveRequest {
+  string filename = 1;
+}
+
+message RetrieveResponse {
+  bool success = 1;
+  bytes content = 2;
+  string message = 3;
+}
+
+message RemoveRequest {
+  string filename = 1;
+}
+
+message RemoveResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message NodeSpaceRequest {}
+
+message NodeSpaceResponse {
+  int64 total = 1;
+  int64 used = 2;
+}
